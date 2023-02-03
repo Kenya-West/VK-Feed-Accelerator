@@ -1,12 +1,11 @@
 // ==UserScript==
-// @name userscript-typescript-template-kw
-// @version 1.1.0
+// @name vk-feed-accelerator
+// @version 0.0.1
 // @namespace http://tampermonkey.net/
 // @description Template repo using Webpack and TypeScript to build your userscript for Tampermonkey and more extensions.
 // @homepage https://github.com/pboymt/userscript-typescript-template#readme
 // @license https://opensource.org/licenses/MIT
-// @match https://github.com*
-// @require https://cdn.jsdelivr.net/npm/axios@0.27.2
+// @match https://vk.com/*
 // ==/UserScript==
 
 /******/ (() => { // webpackBootstrap
@@ -47,9 +46,9 @@ class App {
     }
 }
 __decorate([
-    (0, route_guard_1.routeGuardIncludes)(routes_1.Routes.root),
-    (0, element_existence_guard_1.elementShouldNotExistGuard)("#example-id"),
-    (0, element_existence_guard_1.elementShouldExistGuard)((_a = element_find_1.GetElementCollection.get(element_collection_1.ElementCollection.Root)) === null || _a === void 0 ? void 0 : _a.selector)
+    (0, route_guard_1.routeGuardIncludes)(routes_1.Routes.feed),
+    (0, element_existence_guard_1.elementShouldNotExistGuard)("#feed_filters > .page_block.vk-feed-accelerator-page_block"),
+    (0, element_existence_guard_1.elementShouldExistGuard)((_a = element_find_1.GetElementCollection.get(element_collection_1.ElementCollection.PageBlock)) === null || _a === void 0 ? void 0 : _a.selector)
 ], App.prototype, "addButtons", null);
 exports.App = App;
 
@@ -191,7 +190,7 @@ const EnvGuard = (env) => (target, propertyKey, descriptor) => {
     const originalMethod = descriptor.value;
     descriptor.value = function (...args) {
         const url = new URL(location.href);
-        if (env === undefined.ENV) {
+        if (env === {"ENV":"production"}.ENV) {
             originalMethod.apply(this, args);
         }
         else {
@@ -213,6 +212,7 @@ exports.Routes = void 0;
 var Routes;
 (function (Routes) {
     Routes["root"] = "/";
+    Routes["feed"] = "/feed";
 })(Routes = exports.Routes || (exports.Routes = {}));
 
 
@@ -236,6 +236,9 @@ class ElementFind {
     }
     getElementByElementIdSingle(query) {
         return this._getByElementCollection(GetElementCollection.get(query));
+    }
+    getElementByElementIdMultiple(query) {
+        return this._getElementMultiple(GetElementCollection.get(query));
     }
     _queryGetMultiple(query) {
         return Array.from(this.contextElement.querySelectorAll(query));
@@ -276,13 +279,43 @@ exports.elementCollectionList = exports.ElementCollection = void 0;
 var ElementCollection;
 (function (ElementCollection) {
     ElementCollection[ElementCollection["Root"] = 0] = "Root";
+    ElementCollection[ElementCollection["FeedFilters"] = 1] = "FeedFilters";
+    ElementCollection[ElementCollection["PageBlock"] = 2] = "PageBlock";
+    ElementCollection[ElementCollection["FeedItems"] = 3] = "FeedItems";
+    ElementCollection[ElementCollection["PageBlockCustom"] = 4] = "PageBlockCustom";
+    ElementCollection[ElementCollection["PageBlockCustomUiToggler"] = 5] = "PageBlockCustomUiToggler";
 })(ElementCollection = exports.ElementCollection || (exports.ElementCollection = {}));
 exports.elementCollectionList = [
     {
         id: ElementCollection.Root,
         selector: "body",
         preferredMode: "selectSingle"
-    }
+    },
+    {
+        id: ElementCollection.FeedFilters,
+        selector: "#feed_filters",
+        preferredMode: "selectSingle"
+    },
+    {
+        id: ElementCollection.PageBlock,
+        selector: "#feed_filters > .page_block",
+        preferredMode: "selectSingle"
+    },
+    {
+        id: ElementCollection.FeedItems,
+        selector: "#feed_rows > .feed_row",
+        preferredMode: "selectMultiple"
+    },
+    {
+        id: ElementCollection.PageBlockCustom,
+        selector: "#feed_filters > .page_block.vk-feed-accelerator-page_block",
+        preferredMode: "selectSingle"
+    },
+    {
+        id: ElementCollection.PageBlockCustomUiToggler,
+        selector: "#feed_filters > .page_block.vk-feed-accelerator-page_block .ui_toggler",
+        preferredMode: "selectSingle"
+    },
 ];
 
 
@@ -293,26 +326,30 @@ exports.elementCollectionList = [
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.loadStyles = exports.addButtons = void 0;
-const console_log_action_1 = __webpack_require__(10);
-const button_control_1 = __webpack_require__(11);
-const button_model_1 = __webpack_require__(14);
+const button_control_1 = __webpack_require__(10);
+const button_model_1 = __webpack_require__(13);
 const element_find_1 = __webpack_require__(7);
-const render_fabric_1 = __webpack_require__(15);
+const render_fabric_1 = __webpack_require__(14);
 const element_collection_1 = __webpack_require__(8);
-const styles_injecter_1 = __webpack_require__(17);
+const styles_injecter_1 = __webpack_require__(16);
+const clear_list_action_1 = __webpack_require__(30);
 function addButtons() {
-    addThreeDotsButton();
-    function addThreeDotsButton() {
+    addFeedCleanerSwitch();
+    function addFeedCleanerSwitch() {
         const addSearchButton = new button_control_1.ButtonControl({
-            id: "sample-button",
-            tag: "button",
-            classes: ["example-button"],
-            attributes: { "tabindex": "0", "role": "link" },
+            id: "",
+            tag: "div",
+            classes: ["vk-feed-accelerator-page_block", "page_block"],
             icon: button_model_1.ButtonIcons.none,
-            text: "EXAMPLE BUTTON",
-        }, console_log_action_1.ConsoleLogAction.prototype.run, {}).element;
-        const element = new element_find_1.ElementFind().getElementByElementIdSingle(element_collection_1.ElementCollection.Root);
-        new render_fabric_1.RenderAt().render(addSearchButton, element);
+            html: `<div class="ui_toggler_wrap vk-feed-accelerator-icon hot" title="Данная настройка убирает прокрученные посты, оставляя 30 самых нижних.\nПосле обновления страницы, перехода на другую страницу или смены ленты новостей посты возвращаются.\nТаким образом страница ускоряется и перестаёт тормозить, если вам нужно крутить её куда-то глубоко в прошлые посты">
+            <div class="_ui_toggler ui_toggler "></div>
+            <div class="ui_toggler_label">Очистка ленты (ускорение)</div>
+            </div>`,
+        }, clear_list_action_1.ClearListActionSwitch.prototype.run, {}).element;
+        const element = new element_find_1.ElementFind().getElementByElementIdSingle(element_collection_1.ElementCollection.FeedFilters);
+        const beforeElement = new element_find_1.ElementFind().getElementByElementIdSingle(element_collection_1.ElementCollection.PageBlock);
+        new render_fabric_1.RenderAt().render(addSearchButton, element, beforeElement);
+        clear_list_action_1.ClearListActionSwitch.initState(localStorage.getItem("vk-feed-accelerator-clear-list"));
     }
 }
 exports.addButtons = addButtons;
@@ -328,24 +365,8 @@ exports.loadStyles = loadStyles;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ConsoleLogAction = void 0;
-const logger_1 = __webpack_require__(4);
-class ConsoleLogAction {
-    run() {
-        logger_1.Logger.log("The button is working!");
-    }
-}
-exports.ConsoleLogAction = ConsoleLogAction;
-
-
-/***/ }),
-/* 11 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ButtonControl = void 0;
-const button_base_control_1 = __webpack_require__(12);
+const button_base_control_1 = __webpack_require__(11);
 class ButtonControl extends button_base_control_1.ButtonBaseControl {
     constructor(params, callback, args) {
         super(params, callback, args);
@@ -355,13 +376,13 @@ exports.ButtonControl = ButtonControl;
 
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ButtonBaseControl = void 0;
-const control_base_control_1 = __webpack_require__(13);
+const control_base_control_1 = __webpack_require__(12);
 class ButtonBaseControl extends control_base_control_1.ControlBase {
     constructor(params, callback, args) {
         super(params);
@@ -376,7 +397,7 @@ exports.ButtonBaseControl = ButtonBaseControl;
 
 
 /***/ }),
-/* 13 */
+/* 12 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -442,7 +463,7 @@ exports.ControlBase = ControlBase;
 
 
 /***/ }),
-/* 14 */
+/* 13 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -456,14 +477,14 @@ var ButtonIcons;
 
 
 /***/ }),
-/* 15 */
+/* 14 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RenderAt = void 0;
 const logger_1 = __webpack_require__(4);
-const render_model_1 = __webpack_require__(16);
+const render_model_1 = __webpack_require__(15);
 class RenderAt {
     render(element, place, renderBefore) {
         if (place && element) {
@@ -496,7 +517,7 @@ exports.RenderAt = RenderAt;
 
 
 /***/ }),
-/* 16 */
+/* 15 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -517,7 +538,7 @@ var DeleteResult;
 
 
 /***/ }),
-/* 17 */
+/* 16 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -532,8 +553,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StylesInjecter = void 0;
-const styles_scss_1 = __importDefault(__webpack_require__(18));
-const userscript_permissions_guard_1 = __webpack_require__(28);
+const styles_scss_1 = __importDefault(__webpack_require__(17));
+const userscript_permissions_guard_1 = __webpack_require__(29);
 class StylesInjecter {
     injectInit() {
         styles_scss_1.default;
@@ -549,26 +570,26 @@ exports.StylesInjecter = StylesInjecter;
 
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_style_loader_dist_runtime_styleDomAPI_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(20);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_styleDomAPI_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(19);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_styleDomAPI_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_styleDomAPI_js__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _node_modules_style_loader_dist_runtime_insertBySelector_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(21);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_insertBySelector_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_insertBySelector_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_insertBySelector_js__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _node_modules_style_loader_dist_runtime_setAttributesWithoutAttributes_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_setAttributesWithoutAttributes_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(21);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_setAttributesWithoutAttributes_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_setAttributesWithoutAttributes_js__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(23);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(22);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_insertStyleElement_js__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var _node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(24);
+/* harmony import */ var _node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(23);
 /* harmony import */ var _node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(_node_modules_style_loader_dist_runtime_styleTagTransform_js__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _node_modules_css_loader_dist_cjs_js_node_modules_sass_loader_dist_cjs_js_styles_scss__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(25);
+/* harmony import */ var _node_modules_css_loader_dist_cjs_js_node_modules_sass_loader_dist_cjs_js_styles_scss__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(24);
 
       
       
@@ -599,7 +620,7 @@ var update = _node_modules_style_loader_dist_runtime_injectStylesIntoStyleTag_js
 
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ ((module) => {
 
 
@@ -708,7 +729,7 @@ module.exports = function (list, options) {
 };
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ ((module) => {
 
 
@@ -783,7 +804,7 @@ function domAPI(options) {
 module.exports = domAPI;
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ ((module) => {
 
 
@@ -827,7 +848,7 @@ function insertBySelector(insert, style) {
 module.exports = insertBySelector;
 
 /***/ }),
-/* 22 */
+/* 21 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
@@ -844,7 +865,7 @@ function setAttributesWithoutAttributes(styleElement) {
 module.exports = setAttributesWithoutAttributes;
 
 /***/ }),
-/* 23 */
+/* 22 */
 /***/ ((module) => {
 
 
@@ -860,7 +881,7 @@ function insertStyleElement(options) {
 module.exports = insertStyleElement;
 
 /***/ }),
-/* 24 */
+/* 23 */
 /***/ ((module) => {
 
 
@@ -881,29 +902,34 @@ function styleTagTransform(css, styleElement) {
 module.exports = styleTagTransform;
 
 /***/ }),
-/* 25 */
+/* 24 */
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(27);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(26);
 /* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_getUrl_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(27);
+/* harmony import */ var _node_modules_css_loader_dist_runtime_getUrl_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_getUrl_js__WEBPACK_IMPORTED_MODULE_2__);
 // Imports
 
 
+
+var ___CSS_LOADER_URL_IMPORT_0___ = new URL(/* asset import */ __webpack_require__(28), __webpack_require__.b);
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
+var ___CSS_LOADER_URL_REPLACEMENT_0___ = _node_modules_css_loader_dist_runtime_getUrl_js__WEBPACK_IMPORTED_MODULE_2___default()(___CSS_LOADER_URL_IMPORT_0___);
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, ".some-non-existed-element {\n  background: rgba(57, 125, 204, 0.15);\n}", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, ".vk-feed-accelerator-page_block .vk-feed-accelerator-icon {\n  background-image: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ");\n}", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
 
 /***/ }),
-/* 26 */
+/* 25 */
 /***/ ((module) => {
 
 
@@ -913,7 +939,7 @@ module.exports = function (i) {
 };
 
 /***/ }),
-/* 27 */
+/* 26 */
 /***/ ((module) => {
 
 
@@ -1003,7 +1029,44 @@ module.exports = function (cssWithMappingToString) {
 };
 
 /***/ }),
+/* 27 */
+/***/ ((module) => {
+
+
+
+module.exports = function (url, options) {
+  if (!options) {
+    options = {};
+  }
+  if (!url) {
+    return url;
+  }
+  url = String(url.__esModule ? url.default : url);
+
+  // If url is already wrapped in quotes, remove them
+  if (/^['"].*['"]$/.test(url)) {
+    url = url.slice(1, -1);
+  }
+  if (options.hash) {
+    url += options.hash;
+  }
+
+  // Should url be wrapped?
+  // See https://drafts.csswg.org/css-values-3/#urls
+  if (/["'() \t\n]|(%20)/.test(url) || options.needQuotes) {
+    return "\"".concat(url.replace(/"/g, '\\"').replace(/\n/g, "\\n"), "\"");
+  }
+  return url;
+};
+
+/***/ }),
 /* 28 */
+/***/ ((module) => {
+
+module.exports = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjEuNSA2YTEgMSAwIDAgMS0uODgzLjk5M0wyMC41IDdoLS44NDVsLTEuMjMxIDEyLjUyQTIuNzUgMi43NSAwIDAgMSAxNS42ODcgMjJIOC4zMTNhMi43NSAyLjc1IDAgMCAxLTIuNzM3LTIuNDhMNC4zNDUgN0gzLjVhMSAxIDAgMCAxIDAtMmg1YTMuNSAzLjUgMCAxIDEgNyAwaDVhMSAxIDAgMCAxIDEgMVptLTcuMjUgMy4yNWEuNzUuNzUgMCAwIDAtLjc0My42NDhMMTMuNSAxMHY3bC4wMDcuMTAyYS43NS43NSAwIDAgMCAxLjQ4NiAwTDE1IDE3di03bC0uMDA3LS4xMDJhLjc1Ljc1IDAgMCAwLS43NDMtLjY0OFptLTQuNSAwYS43NS43NSAwIDAgMC0uNzQzLjY0OEw5IDEwdjdsLjAwNy4xMDJhLjc1Ljc1IDAgMCAwIDEuNDg2IDBMMTAuNSAxN3YtN2wtLjAwNy0uMTAyYS43NS43NSAwIDAgMC0uNzQzLS42NDhaTTEyIDMuNUExLjUgMS41IDAgMCAwIDEwLjUgNWgzQTEuNSAxLjUgMCAwIDAgMTIgMy41WiIgZmlsbD0iIzI5ODBCOSIvPjwvc3ZnPg==";
+
+/***/ }),
+/* 29 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1027,7 +1090,113 @@ exports.checkUserscriptPermission = checkUserscriptPermission;
 
 
 /***/ }),
-/* 29 */
+/* 30 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ClearListActionSwitch = void 0;
+const log_decorator_1 = __webpack_require__(31);
+const element_collection_1 = __webpack_require__(8);
+const element_find_1 = __webpack_require__(7);
+const FEED_COUNTER = 30;
+class ClearListActionSwitch {
+    run(payload) {
+        ClearListActionSwitch.switchValues();
+    }
+    static getValue() {
+        return localStorage.getItem("vk-feed-accelerator-clear-list") === "true" ? true : false;
+    }
+    static setValue(value) {
+        const elem = new element_find_1.ElementFind().getElementByElementIdSingle(element_collection_1.ElementCollection.PageBlockCustomUiToggler);
+        if (value === true) {
+            if (elem.classList.contains("off"))
+                elem.classList.remove("off");
+            elem.classList.add("on");
+            ClearListActionSwitch.clearFeed();
+            ClearListActionSwitch.timerLaunch();
+        }
+        else {
+            if (elem.classList.contains("on"))
+                elem.classList.remove("on");
+            elem.classList.add("off");
+            ClearListActionSwitch.timerStop();
+        }
+        localStorage.setItem("vk-feed-accelerator-clear-list", value.toString());
+        return localStorage.getItem("vk-feed-accelerator-clear-list") === "true" ? true : false;
+    }
+    static switchValues() {
+        ClearListActionSwitch.setValue(!ClearListActionSwitch.getValue());
+        return localStorage.getItem("vk-feed-accelerator-clear-list") === "true" ? true : false;
+    }
+    static initState(value) {
+        if (value === null) {
+            ClearListActionSwitch.setValue(false);
+        }
+        else {
+            const elem = new element_find_1.ElementFind().getElementByElementIdSingle(element_collection_1.ElementCollection.PageBlockCustomUiToggler);
+            if (!elem.classList.contains("on") && !elem.classList.contains("off")) {
+                ClearListActionSwitch.setValue(value === "true" ? true : false);
+            }
+        }
+    }
+    static clearFeed() {
+        if (ClearListActionSwitch.getValue()) {
+            const elems = new element_find_1.ElementFind().getElementByElementIdMultiple(element_collection_1.ElementCollection.FeedItems);
+            elems.forEach((feedRow, i) => { if (i < elems.length - FEED_COUNTER)
+                feedRow.remove(); });
+        }
+    }
+    static timerLaunch() {
+        if (ClearListActionSwitch.timer === null) {
+            ClearListActionSwitch.timer = setInterval(ClearListActionSwitch.clearFeed, 30000);
+        }
+    }
+    static timerStop() {
+        if (ClearListActionSwitch.timer) {
+            clearInterval(ClearListActionSwitch.timer);
+            ClearListActionSwitch.timer = null;
+        }
+        ;
+    }
+}
+ClearListActionSwitch.timer = null;
+__decorate([
+    (0, log_decorator_1.log)("Запущен метод clearFeed()")
+], ClearListActionSwitch, "clearFeed", null);
+exports.ClearListActionSwitch = ClearListActionSwitch;
+
+
+/***/ }),
+/* 31 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.log = void 0;
+const logger_1 = __webpack_require__(4);
+const log = (message, level = "log") => (target, propertyKey, descriptor) => {
+    const originalMethod = descriptor.value;
+    descriptor.value = function (...args) {
+        if (message) {
+            logger_1.Logger.log(message, level);
+        }
+        ;
+        originalMethod.apply(this, args);
+    };
+    return descriptor;
+};
+exports.log = log;
+
+
+/***/ }),
+/* 32 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -1073,6 +1242,9 @@ exports.stopScheduling = stopScheduling;
 /******/ 		return module.exports;
 /******/ 	}
 /******/ 	
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = __webpack_modules__;
+/******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat get default export */
 /******/ 	(() => {
@@ -1114,6 +1286,32 @@ exports.stopScheduling = stopScheduling;
 /******/ 		};
 /******/ 	})();
 /******/ 	
+/******/ 	/* webpack/runtime/jsonp chunk loading */
+/******/ 	(() => {
+/******/ 		__webpack_require__.b = document.baseURI || self.location.href;
+/******/ 		
+/******/ 		// object to store loaded and loading chunks
+/******/ 		// undefined = chunk not loaded, null = chunk preloaded/prefetched
+/******/ 		// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+/******/ 		var installedChunks = {
+/******/ 			0: 0
+/******/ 		};
+/******/ 		
+/******/ 		// no chunk on demand loading
+/******/ 		
+/******/ 		// no prefetching
+/******/ 		
+/******/ 		// no preloaded
+/******/ 		
+/******/ 		// no HMR
+/******/ 		
+/******/ 		// no HMR manifest
+/******/ 		
+/******/ 		// no on chunks loaded
+/******/ 		
+/******/ 		// no jsonp function
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/nonce */
 /******/ 	(() => {
 /******/ 		__webpack_require__.nc = undefined;
@@ -1127,7 +1325,7 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const app_1 = __webpack_require__(1);
-const scheduler_1 = __webpack_require__(29);
+const scheduler_1 = __webpack_require__(32);
 const app = new app_1.App();
 (0, scheduler_1.startScheduling)(app);
 

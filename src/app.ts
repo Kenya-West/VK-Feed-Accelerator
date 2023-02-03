@@ -12,9 +12,9 @@ export class App {
         this.initializeFeatures();
     }
 
-    @routeGuardIncludes(Routes.root)
-    @elementShouldNotExistGuard("#example-id")
-    @elementShouldExistGuard(GetElementCollection.get(ElementCollection.Root)?.selector)
+    @routeGuardIncludes(Routes.feed)
+    @elementShouldNotExistGuard("#feed_filters > .page_block.vk-feed-accelerator-page_block")
+    @elementShouldExistGuard(GetElementCollection.get(ElementCollection.PageBlock)?.selector)
     public addButtons(): void {
         Logger.log("addButtons method is working!");
         addButtons();

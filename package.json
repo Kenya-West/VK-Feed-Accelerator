@@ -1,6 +1,6 @@
 {
-  "name": "userscript-typescript-template-kw",
-  "version": "1.1.0",
+  "name": "vk-feed-accelerator",
+  "version": "0.0.1",
   "description": "Template repo using Webpack and TypeScript to build your userscript for Tampermonkey and more extensions.",
   "main": "userscript/index.user.js",
   "scripts": {
@@ -46,7 +46,7 @@
     "namespace": "http://tampermonkey.net/",
     "license": "https://opensource.org/licenses/MIT",
     "match": [
-      "https://github.com*"
+      "https://vk.com/*"
     ],
     "connect": [],
     "require": [],
@@ -54,7 +54,5 @@
     "exclude": [],
     "resources": []
   },
-  "dependencies": {
-    "axios": "^0.27.2"
-  }
+  "dependencies": {}
 }

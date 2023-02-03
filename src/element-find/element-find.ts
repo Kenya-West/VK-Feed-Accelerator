@@ -18,6 +18,9 @@ export class ElementFind {
     public getElementByElementIdSingle(query: ElementCollection): SourceElementModel {
         return this._getByElementCollection(GetElementCollection.get(query)!);
     }
+    public getElementByElementIdMultiple(query: ElementCollection): SourceElementModel[] {
+        return this._getElementMultiple(GetElementCollection.get(query)!);
+    }
 
     private _queryGetMultiple(query: string): SourceElementModel[] {
         return Array.from(this.contextElement.querySelectorAll(query)) as SourceElementModel[];

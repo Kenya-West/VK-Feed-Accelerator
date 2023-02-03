@@ -1,3 +1,4 @@
 export enum Routes {
-    root = "/"
+    root = "/",
+    feed = "/feed"
 }
