@@ -2,7 +2,7 @@
 // @name vk-feed-accelerator
 // @version 0.0.1
 // @namespace http://tampermonkey.net/
-// @description Template repo using Webpack and TypeScript to build your userscript for Tampermonkey and more extensions.
+// @description Accelerates long VK.com feed pages by removing seen posts.
 // @homepage https://github.com/pboymt/userscript-typescript-template#readme
 // @license https://opensource.org/licenses/MIT
 // @match https://vk.com/*

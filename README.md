@@ -1,4 +1,10 @@
-# userscript-typescript-template-kw
+# VK Feed Accelerator
+
+Accelerates long [VK.com](https://vk.com) feed pages by removing seen posts.
+
+## This project uses template
+
+A tamplate: [Kenya-West/userscript-typescript-template](https://github.com/Kenya-West/userscript-typescript-template-kw)
 
 An opinionated template repo using Webpack and TypeScript to build your userscript for Tampermonkey and more extensions.
 

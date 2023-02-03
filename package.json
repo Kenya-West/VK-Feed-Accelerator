@@ -1,7 +1,7 @@
 {
   "name": "vk-feed-accelerator",
   "version": "0.0.1",
-  "description": "Template repo using Webpack and TypeScript to build your userscript for Tampermonkey and more extensions.",
+  "description": "Accelerates long VK.com feed pages by removing seen posts.",
   "main": "userscript/index.user.js",
   "scripts": {
     "build:dev": "npx cross-env ENV=development webpack",
